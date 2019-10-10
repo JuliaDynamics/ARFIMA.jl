@@ -20,7 +20,7 @@ The generating equation for `Xₜ` is:
 ```
 with ``B`` the backshift operator and ``\\varepsilon_t`` white noise.
 
-This equation encapsoulates all possible variants of ARFIMA and Julia's
+This equation encapsulates all possible variants of ARFIMA and Julia's
 multiple dispatch system decides which will be the simulated variant,
 based on the types of `d, φ, θ`.
 
