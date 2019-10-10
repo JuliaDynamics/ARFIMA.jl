@@ -1,8 +1,7 @@
 module ARFIMA
 
 using Random, Distributions, LinearAlgebra, StaticArrays
-export arfima
-export SVector, @SVector
+export arfima, SVector, @SVector
 
 """
     arfima([rng,] N, σ, d, φ=nothing, θ=nothing) -> Xₜ
@@ -17,7 +16,7 @@ The generating equation for `Xₜ` is:
 \\left( 1 - \\sum_{i=1}^p \\phi_i B^i \\right)
 \\left( 1-B \\right)^d X_t
 =
-\\left( 1 + \\sum_{i=1}^q \\theta_i B^i \\right) \\varepsilon_t \\
+\\left( 1 + \\sum_{i=1}^q \\theta_i B^i \\right) \\varepsilon_t
 ```
 with ``B`` the backshift operator and ``\\varepsilon_t`` white noise.
 
@@ -34,7 +33,7 @@ the corresponding components of autoregressive (φ) and moving average (θ)
 are not done. Otherwise, the static vectors simply contain their values.
 
 If `d` is `Nothing`, then the differencing (integrated)
-part is not done and the process is in fact AR, ARMA, etc..
+part is not done and the process is in fact AR/MA/ARMA.
 If `d` is of type `Int`, then the simulated process is in fact ARIMA,
 while if `d` is `AbstractFloat` then the process is AR**F**IMA.
 In the last case it must hold that `d ∈ (-0.5, 0.5)`.
@@ -42,17 +41,15 @@ In the last case it must hold that `d ∈ (-0.5, 0.5)`.
 If all `d, φ, θ` are `nothing`, white noise is returned.
 """
 arfima(N::Int, args...) = arfima(Random.GLOBAL_RNG, N, args...)
-arfima(rng::AbstractRNG, N::Int, σ, d) = arfima(rng, N, σ, d, nothing, nothing)
-arfima(rng::AbstractRNG, N::Int, σ, d, φ) = arfima(rng, N, σ, d, φ, nothing)
+arfima(rng::AbstractRNG, N, σ, d) = arfima(rng, N, σ, d, nothing, nothing)
+arfima(rng::AbstractRNG, N, σ, d, φ) = arfima(rng, N, σ, d, φ, nothing)
 
 arfima(rng, N, σ, ::Nothing, ::Nothing, θ) = generate_noise(rng, N, σ, θ) # MA
 
 function arfima(rng, N, σ, d, φ::SVector{Q}, θ) where {Q} # AR(F)IMA
     L = estimate_past(φ)
-    @show L
-    # Generate FIMA or IMA (no autoregressive part)
-    Z = arfima(rng, L+N, σ, d, nothing, θ)
-    X = autoregressive(N, Z, φ)
+    Z = arfima(rng, L+N, σ, d, nothing, θ) # Generate FIMA or IMA
+    X = autoregressive(N, Z, φ) # autoregress on the result
 end
 
 function arfima(rng, N, σ, d::AbstractFloat, φ::Nothing, θ) # FIMA
@@ -104,19 +101,16 @@ function generate_noise(rng, N, σ, θ::SVector{P}) where {P} # MA
     return noise
 end
 
-# TODO: make this @generated
+# TODO: after tests, add @inbounds
 """
     bdp(φ::SVector, X::AbstractVector, t)
 Perform the backshift dot product between `φ` and `X`, with starting index `t`:
 ``\\sum_i \\phi_i X_{t-i}``.
 """
-function bdp(φ::SVector{Q, F}, X::AbstractVector{<:T}, t) where {Q,F,T}
-    s = zero(promote_type(F, T))
-    # TODO: after tests, add @inbounds
-    for i in 1:Q
-        s += φ[i]*X[t-i]
-    end
-    return s
+@generated function bdp(φ::SVector{Q}, X::AbstractVector, t) where {Q}
+    exprs = [:(φ[$i]*X[t-$i]) for i in 1:Q]
+    ex = :(+($(exprs...)))
+    return ex
 end
 
 "Estimate how long into the past to go for accurate AR process."
@@ -147,6 +141,5 @@ function autoregressive(N, Z, φ::SVector{Q}) where {Q}
     end
     return X
 end
-
 
 end # module
