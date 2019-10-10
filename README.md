@@ -50,3 +50,7 @@ while if `d` is `AbstractFloat` then the process is AR**F**IMA.
 In the last case it must hold that `d ∈ (-0.5, 0.5)`.
 
 If all `d, φ, θ` are `nothing`, white noise is returned.
+
+---
+
+*Thanks to Katjia Polotzek from the MPIPKS for providing an initial code base for ARFIMA*
