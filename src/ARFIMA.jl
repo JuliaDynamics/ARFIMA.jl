@@ -71,15 +71,16 @@ function arfima(rng, N, σ, d::AbstractFloat, φ::Nothing, θ) # FIMA
 end
 
 function arfima(rng, N, σ, d::Int, φ::Nothing, θ) # IMA
+    println("its called")
     @assert d>0
-    M = N + d
+    M = N + 2d
     noise = generate_noise(rng, M, σ, θ)
     differencing = SVector{d}([(-1)^(k+1) * binomial(d, k) for k in 1:d]...)
-    X = zeros(N)
-    for i in 1:N
-        X[i] = bdp(differencing, noise, d+i) + noise[d+i]
+    X = zeros(N+d)
+    for i in d+1:N+1
+        X[i] = bdp(differencing, X, i) + noise[d+i]
     end
-    return X
+    return deleteat!(X, 1:d)
 end
 
 function arfima(rng, N, σ, d::Nothing, φ::SVector{P}, θ) where {P} # AR(MA)
