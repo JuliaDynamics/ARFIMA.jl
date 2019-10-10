@@ -9,7 +9,7 @@ The code base is also a proof-of-concept of using Julia's multiple dispatch.
 The ARFIMA process is composed out of several components and each can be included or not included in the process, resulting in simplified versions like ARMA.
 
 ## Usage
-This package exports a single function `arfima`. This function when called generates everything using Julia's multiple dispatch.
+This package exports a single function `arfima`. This function  generates the timeseries `Xₜ` using Julia's multiple dispatch.
 
 Here is its documentation string:
 
@@ -35,9 +35,9 @@ This equation encapsulates all possible variants of ARFIMA and Julia's
 multiple dispatch system decides which will be the simulated variant,
 based on the types of `d, φ, θ`.
 
-### Variants
-The ARFIMA parameters are (q, d, p) with `q = length(φ)` and `p = length(θ)`,
-with `q, p` describing the autoregressive or moving average components while
+## Variants
+The ARFIMA parameters are (p, d, q) with `p = length(φ)` and `q = length(θ)`,
+with `p, q` describing the autoregressive or moving average "orders" while
 `d` is the differencing "order".
 Both `φ, θ` can be of two types: `Nothing` or `SVector`. If they are `Nothing`
 the corresponding components of autoregressive (φ) and moving average (θ)

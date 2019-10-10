@@ -25,8 +25,8 @@ multiple dispatch system decides which will be the simulated variant,
 based on the types of `d, φ, θ`.
 
 ## Variants
-The ARFIMA parameters are (q, d, p) with `q = length(φ)` and `p = length(θ)`,
-with `q, p` describing the autoregressive or moving average components while
+The ARFIMA parameters are (p, d, q) with `p = length(φ)` and `q = length(θ)`,
+with `p, q` describing the autoregressive or moving average "orders" while
 `d` is the differencing "order".
 Both `φ, θ` can be of two types: `Nothing` or `SVector`. If they are `Nothing`
 the corresponding components of autoregressive (φ) and moving average (θ)
@@ -46,7 +46,7 @@ arfima(rng::AbstractRNG, N, σ, d, φ) = arfima(rng, N, σ, d, φ, nothing)
 
 arfima(rng, N, σ, ::Nothing, ::Nothing, θ) = generate_noise(rng, N, σ, θ) # MA
 
-function arfima(rng, N, σ, d, φ::SVector{Q}, θ) where {Q} # AR(F)IMA
+function arfima(rng, N, σ, d, φ::SVector{P}, θ) where {P} # AR(F)IMA
     L = estimate_past(φ)
     Z = arfima(rng, L+N, σ, d, nothing, θ) # Generate FIMA or IMA
     X = autoregressive(N, Z, φ) # autoregress on the result
@@ -82,8 +82,8 @@ function arfima(rng, N, σ, d::Int, φ::Nothing, θ) # IMA
     return X
 end
 
-function arfima(rng, N, σ, d::Nothing, φ::SVector{Q}, θ) where {Q} # AR(MA)
-     noise = generate_noise(rng, N + Q, σ, θ)
+function arfima(rng, N, σ, d::Nothing, φ::SVector{P}, θ) where {P} # AR(MA)
+     noise = generate_noise(rng, N + P, σ, θ)
      L = estimate_past(φ)
      Z = generate_noise(rng, N + L, σ, θ) # white noise
      X = autoregressive(N, Z, φ)
@@ -91,12 +91,12 @@ end
 
 
 generate_noise(rng, N, σ, θ::Nothing) = rand(rng, Normal(0, σ), N) # white noise
-function generate_noise(rng, N, σ, θ::SVector{P}) where {P} # MA
-    ε = generate_noise(rng, N+P, σ, nothing)
+function generate_noise(rng, N, σ, θ::SVector{Q}) where {Q} # MA
+    ε = generate_noise(rng, N+Q, σ, nothing)
     noise = zeros(N)
     # simply now do the average process
     for i in 1:N
-        noise[i] = bdp(θ, ε, i+P)
+        noise[i] = bdp(θ, ε, i+Q)
     end
     return noise
 end
@@ -107,36 +107,36 @@ end
 Perform the backshift dot product between `φ` and `X`, with starting index `t`:
 ``\\sum_i \\phi_i X_{t-i}``.
 """
-@generated function bdp(φ::SVector{Q}, X::AbstractVector, t) where {Q}
-    exprs = [:(φ[$i]*X[t-$i]) for i in 1:Q]
+@generated function bdp(φ::SVector{P}, X::AbstractVector, t) where {P}
+    exprs = [:(φ[$i]*X[t-$i]) for i in 1:P]
     ex = :(+($(exprs...)))
     return ex
 end
 
 "Estimate how long into the past to go for accurate AR process."
-estimate_past(φ::SVector{Q}) where {Q} =
-max(Q+1, ceil(Int, log(0.001)/log(maximum(abs, φ))))
+estimate_past(φ::SVector{P}) where {P} =
+max(P+1, ceil(Int, log(0.001)/log(maximum(abs, φ))))
 
 
 """
-    autoregressive(N, Z, φ::SVector{Q}) -> X
+    autoregressive(N, Z, φ::SVector{P}) -> X
 Generate an autoregressive process based on input noise term `Z`.
 This is used in both ARFIMA and ARMA.
 """
-function autoregressive(N, Z, φ::SVector{Q}) where {Q}
-    L = length(Z) - N; @assert L > Q
-    tmp = zeros(Q)
+function autoregressive(N, Z, φ::SVector{P}) where {P}
+    L = length(Z) - N; @assert L > P
+    tmp = zeros(P)
 
-    # Generate correct inital condition: the first Q values of X
-    for i = 1:L-Q;
-        y = bdp(φ, tmp, Q+1) + Z[i];
+    # Generate correct inital condition: the first P values of X
+    for i = 1:L-P;
+        y = bdp(φ, tmp, P+1) + Z[i];
         tmp[1:end-1] .= tmp[2:end] # shift values and add the new value
         tmp[end] = y
     end
 
     # X0 is now the "correct" X0, after L steps in advance
-    X = zeros(N); X[1:Q] .= tmp
-    for i in (Q+1):N
+    X = zeros(N); X[1:P] .= tmp
+    for i in (P+1):N
         X[i] = bdp(φ, X, i) + Z[i+L]
     end
     return X
