@@ -74,10 +74,10 @@ function arfima(rng, N, σ, d::Int, φ::Nothing, θ) # IMA
     @assert d>0
     M = N + d
     noise = generate_noise(rng, M, σ, θ)
-    differencing = SVector{d}(binomial.(d, 1:d)...)
+    differencing = SVector{d}([(-1)^(k+1) * binomial(d, k) for k in 1:d]...)
     X = zeros(N)
-    for k in 1:N
-        X[k] = bdp(differencing, noise, d+k) + noise[d+k]
+    for i in 1:N
+        X[i] = bdp(differencing, noise, d+i) + noise[d+i]
     end
     return X
 end
