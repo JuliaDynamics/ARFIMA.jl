@@ -37,8 +37,18 @@ part is not done and the process is in fact AR/MA/ARMA.
 If `d` is of type `Int`, then the simulated process is in fact ARIMA,
 while if `d` is `AbstractFloat` then the process is AR**F**IMA.
 In the last case it must hold that `d ∈ (-0.5, 0.5)`.
-
 If all `d, φ, θ` are `nothing`, white noise is returned.
+
+## Examples
+```julia
+N, σ = 10_000, 0.5
+arfima(N, σ, 0.4)                             # ARFIMA(0,d,0)
+arfima(N, σ, 0.4, SVector(0.8))               # ARFIMA(1,d,0)
+arfima(N, σ, 1, SVector(0.8))                 # ARIMA(1,d,0)
+arfima(N, σ, 1, SVector(0.8), SVector(1.2))   # ARIMA(1,d,1)
+arfima(N, σ, 0.4, SVector(0.8), SVector(1.2)) # ARFIMA(1,d,1)
+arfima(N, σ, nothing, SVector(0.8))           # ARFIMA(1,0,0)
+```
 """
 arfima(N::Int, args...) = arfima(Random.GLOBAL_RNG, N, args...)
 arfima(rng::AbstractRNG, N, σ, d) = arfima(rng, N, σ, d, nothing, nothing)
@@ -53,35 +63,38 @@ function arfima(rng, N, σ, d, φ::SVector{P}, θ) where {P} # AR(F)IMA
 end
 
 function arfima(rng, N, σ, d::AbstractFloat, φ::Nothing, θ) # FIMA
-    @assert -0.5 ≤ d ≤ 0.5 "For ARFIMA, it must be d ∈ (-0.5, 0.5)"
+    @assert -0.5 ≤ d ≤ 0.5 "For (AR)FIMA, it must be d ∈ (-0.5, 0.5)"
     M = 2N # infinite summation becomes summation over 2N
     noise = generate_noise(rng, M+N-1, σ, θ)
-    # coefficients of truncated sum in inf. moving average representation
-    ψ = zeros(M); ψ[1] = 1
+    # coefficients of truncated sum in fractional derivative
+    ψ = zeros(M); ψ[1] = 1.0
     for k in 0:M-2
-        @inbounds ψ[k+2] = ψ[k+1] * (d+k)/(k+1)
+        @inbounds @fastmath ψ[k+2] = ψ[k+1] * (d+k)/(k+1)
     end
     # Here we create the actual arfima process Xₜ
     X = zeros(N)
     for k in 1:N
-        # TODO: optimize this dot product... (write loop)
-        X[k] = dot(ψ, view(noise, k:k+M-1))
+        @inbounds X[k] = dot(ψ, view(noise, k:k+M-1))
     end
     return X
 end
 
-function arfima(rng, N, σ, d::Int, φ::Nothing, θ) # IMA
-    println("its called")
+@inline function arfima(rng, N, σ, d::Int, φ::Nothing, θ) # IMA
     @assert d>0
     M = N + 2d
     noise = generate_noise(rng, M, σ, θ)
     differencing = SVector{d}([(-1)^(k+1) * binomial(d, k) for k in 1:d]...)
     X = zeros(N+d)
-    for i in d+1:N+1
-        X[i] = bdp(differencing, X, i) + noise[d+i]
-    end
+    _hotloop1!(X, noise, differencing, d, N)
     return deleteat!(X, 1:d)
 end
+# hotloop1 is necessary so that dispach doesn't happen on SVector{d}:
+function _hotloop1!(X, noise, differencing, d, N)
+    for i in d+1:N+d
+        @inbounds X[i] = bdp(differencing, X, i) + noise[d+i]
+    end
+end
+
 
 function arfima(rng, N, σ, d::Nothing, φ::SVector{P}, θ) where {P} # AR(MA)
      noise = generate_noise(rng, N + P, σ, θ)
@@ -98,12 +111,11 @@ function generate_noise(rng, N, σ, θ::SVector{Q}) where {Q} # MA
     θ = -θ # this change is necessary due to the defining equation
     # simply now do the average process
     for i in 1:N
-        noise[i] = bdp(θ, ε, i+Q) + ε[i]
+        @inbounds noise[i] = bdp(θ, ε, i+Q) + ε[i]
     end
     return noise
 end
 
-# TODO: after tests, add @inbounds
 """
     bdp(φ::SVector, X::AbstractVector, t)
 Perform the backshift dot product between `φ` and `X`, with starting index `t`:
@@ -111,8 +123,10 @@ Perform the backshift dot product between `φ` and `X`, with starting index `t`:
 """
 @generated function bdp(φ::SVector{P}, X::AbstractVector, t) where {P}
     exprs = [:(φ[$i]*X[t-$i]) for i in 1:P]
-    ex = :(+($(exprs...)))
-    return ex
+    quote
+        Base.@_inline_meta
+        @inbounds @fastmath +($(exprs...))
+    end
 end
 
 "Estimate how long into the past to go for accurate AR process."
@@ -128,18 +142,16 @@ This is used in both ARFIMA and ARMA.
 function autoregressive(N, Z, φ::SVector{P}) where {P}
     L = length(Z) - N; @assert L > P
     tmp = zeros(P)
-
     # Generate correct inital condition: the first P values of X
     for i = 1:L-P;
         y = bdp(φ, tmp, P+1) + Z[i];
         tmp[1:end-1] .= tmp[2:end] # shift values and add the new value
         tmp[end] = y
     end
-
     # X0 is now the "correct" X0, after L steps in advance
     X = zeros(N); X[1:P] .= tmp
     for i in (P+1):N
-        X[i] = bdp(φ, X, i) + Z[i+L]
+        @inbounds X[i] = bdp(φ, X, i) + Z[i+L]
     end
     return X
 end
