@@ -35,7 +35,7 @@ This equation encapsulates all possible variants of ARFIMA and Julia's
 multiple dispatch system decides which will be the simulated variant,
 based on the types of `d, φ, θ`.
 
-## Variants
+### Variants
 The ARFIMA parameters are (p, d, q) with `p = length(φ)` and `q = length(θ)`,
 with `p, q` describing the autoregressive or moving average "orders" while
 `d` is the differencing "order".
@@ -48,9 +48,19 @@ part is not done and the process is in fact AR/MA/ARMA.
 If `d` is of type `Int`, then the simulated process is in fact ARIMA,
 while if `d` is `AbstractFloat` then the process is AR**F**IMA.
 In the last case it must hold that `d ∈ (-0.5, 0.5)`.
-
 If all `d, φ, θ` are `nothing`, white noise is returned.
+
+### Examples
+```julia
+N, σ = 10_000, 0.5
+arfima(N, σ, 0.4)                             # ARFIMA(0,d,0)
+arfima(N, σ, 0.4, SVector(0.8))               # ARFIMA(1,d,0)
+arfima(N, σ, 1, SVector(0.8))                 # ARIMA(1,d,0)
+arfima(N, σ, 1, SVector(0.8), SVector(1.2))   # ARIMA(1,d,1)
+arfima(N, σ, 0.4, SVector(0.8), SVector(1.2)) # ARFIMA(1,d,1)
+arfima(N, σ, nothing, SVector(0.8))           # ARFIMA(1,0,0)
+```
 
 ---
 
-*Thanks to Katjia Polotzek from the MPIPKS for providing an initial code base for ARFIMA*
+*Thanks to Katjia Polotzek for providing an initial code base for ARFIMA and to Philipp Meyer for validation of parts of the code*
