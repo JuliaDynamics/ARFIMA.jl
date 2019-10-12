@@ -42,12 +42,13 @@ If all `d, φ, θ` are `nothing`, white noise is returned.
 ## Examples
 ```julia
 N, σ = 10_000, 0.5
-arfima(N, σ, 0.4)                             # ARFIMA(0,d,0)
-arfima(N, σ, 0.4, SVector(0.8))               # ARFIMA(1,d,0)
-arfima(N, σ, 1, SVector(0.8))                 # ARIMA(1,d,0)
-arfima(N, σ, 1, SVector(0.8), SVector(1.2))   # ARIMA(1,d,1)
-arfima(N, σ, 0.4, SVector(0.8), SVector(1.2)) # ARFIMA(1,d,1)
-arfima(N, σ, nothing, SVector(0.8))           # ARFIMA(1,0,0)
+arfima(N, σ, 0.4)                                   # ARFIMA(0,d,0)
+arfima(N, σ, 0.4, SVector(0.8))                     # ARFIMA(1,d,0)
+arfima(N, σ, 1, SVector(0.8))                       # ARIMA(1,d,0)
+arfima(N, σ, 1, SVector(0.8), SVector(1.2))         # ARIMA(1,d,1)
+arfima(N, σ, 0.4, SVector(0.8), SVector(1.2))       # ARFIMA(1,d,1)
+arfima(N, σ, nothing, SVector(0.8))                 # AR(1)
+arfima(N, σ, nothing,  SVector(0.8), SVector(1.2))  # ARMA(1,1)
 ```
 """
 arfima(N::Int, args...) = arfima(Random.GLOBAL_RNG, N, args...)

@@ -63,4 +63,33 @@ arfima(N, σ, nothing, SVector(0.8))           # ARFIMA(1,0,0)
 
 ---
 
+## Benchmarks
+Some benchmark code is included in `src/benchmarks.jl`. These results come
+from running the code on a laptop with Windows 10, Julia 1.2.0, Intel i5-6200U @2.30GHz CPU, 8192MB RAM. Results that need microseconds to run are not timed accurately.
+
+```
+Process: ARFIMA(0, d=0.4, 0)
+For N = 10000, 0.2449999 seconds
+For N = 50000, 1.467 seconds
+For N = 100000, 7.5779998 seconds
+
+Process: ARIMA(0, d=2, 0)
+For N = 10000, 0.0 seconds
+For N = 50000, 0.0009999 seconds
+For N = 100000, 0.0020001 seconds
+
+Process: ARFIMA(φ=0.8, d=0.4, 0)
+For N = 10000, 0.267 seconds
+For N = 50000, 1.388 seconds
+For N = 100000, 7.4589999 seconds
+
+Process: ARMA(φ=0.8, θ=2.0)
+For N = 10000, 0.0 seconds
+For N = 50000, 0.0009999 seconds
+For N = 100000, 0.003 seconds
+```
+
+---
+
+## Acknowledgements
 *Thanks to Katjia Polotzek for providing an initial code base for ARFIMA and to Philipp Meyer for validation of parts of the code*
