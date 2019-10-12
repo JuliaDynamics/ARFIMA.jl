@@ -89,13 +89,12 @@ end
     _hotloop1!(X, noise, differencing, d, N)
     return deleteat!(X, 1:d)
 end
-# hotloop1 is necessary so that dispach doesn't happen on SVector{d}:
+# hotloop1: so that dispach doesn't happen dynamically on SVector{d}:
 function _hotloop1!(X, noise, differencing, d, N)
     for i in d+1:N+d
         @inbounds X[i] = bdp(differencing, X, i) + noise[d+i]
     end
 end
-
 
 function arfima(rng, N, σ, d::Nothing, φ::SVector{P}, θ) where {P} # AR(MA)
      noise = generate_noise(rng, N + P, σ, θ)

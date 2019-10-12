@@ -3,6 +3,14 @@ This Julia package simulates stochastic timeseries that follow the ARFIMA proces
 
 The code base is also a proof-of-concept of using Julia's multiple dispatch.
 
+To install:
+```
+julia> ] add https://github.com/Datseris/ARFIMA.jl
+
+julia> using ARFIMA
+```
+see the examples below for usage.
+
 ## ARFIMA and its variants
 ![the ARFIMA process](ARFIMA.png)
 
@@ -22,18 +30,8 @@ process, or any of its subclasses, like e.g. ARMA, AR, ARIMA, etc., see below.
 process. The first optional argument is an `AbstractRNG`, a random
 number generator to establish reproducibility.
 
-The generating equation for `Xₜ` is:
-```math
-\\left( 1 - \\sum_{i=1}^p \\phi_i B^i \\right)
-\\left( 1-B \\right)^d X_t
-=
-\\left( 1 + \\sum_{i=1}^q \\theta_i B^i \\right) \\varepsilon_t
-```
-with ``B`` the backshift operator and ``\\varepsilon_t`` white noise.
-
-This equation encapsulates all possible variants of ARFIMA and Julia's
-multiple dispatch system decides which will be the simulated variant,
-based on the types of `d, φ, θ`.
+Julia's multiple dispatch system decides which will be the simulated variant
+of the process, based on the types of `d, φ, θ`.
 
 ### Variants
 The ARFIMA parameters are (p, d, q) with `p = length(φ)` and `q = length(θ)`,
@@ -53,12 +51,12 @@ If all `d, φ, θ` are `nothing`, white noise is returned.
 ### Examples
 ```julia
 N, σ = 10_000, 0.5
-arfima(N, σ, 0.4)                             # ARFIMA(0,d,0)
-arfima(N, σ, 0.4, SVector(0.8))               # ARFIMA(1,d,0)
-arfima(N, σ, 1, SVector(0.8))                 # ARIMA(1,d,0)
-arfima(N, σ, 1, SVector(0.8), SVector(1.2))   # ARIMA(1,d,1)
-arfima(N, σ, 0.4, SVector(0.8), SVector(1.2)) # ARFIMA(1,d,1)
-arfima(N, σ, nothing, SVector(0.8))           # ARFIMA(1,0,0)
+X = arfima(N, σ, 0.4)                             # ARFIMA(0,d,0)
+X = arfima(N, σ, 0.4, SVector(0.8, 1.2))          # ARFIMA(2,d,0)
+X = arfima(N, σ, 1, SVector(0.8))                 # ARIMA(1,d,0)
+X = arfima(N, σ, 1, SVector(0.8), SVector(1.2))   # ARIMA(1,d,1)
+X = arfima(N, σ, 0.4, SVector(0.8), SVector(1.2)) # ARFIMA(1,d,1)
+X = arfima(N, σ, nothing, SVector(0.8))           # ARFIMA(1,0,0)
 ```
 
 ---
