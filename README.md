@@ -48,6 +48,8 @@ while if `d` is `AbstractFloat` then the process is AR**F**IMA.
 In the last case it must hold that `d ∈ (-0.5, 0.5)`.
 If all `d, φ, θ` are `nothing`, white noise is returned.
 
+The function `arma(N, σ, φ, θ = nothing)` is provided for convienience.
+
 ### Examples
 ```julia
 N, σ = 10_000, 0.5
@@ -56,7 +58,7 @@ X = arfima(N, σ, 0.4, SVector(0.8, 1.2))          # ARFIMA(2,d,0)
 X = arfima(N, σ, 1, SVector(0.8))                 # ARIMA(1,d,0)
 X = arfima(N, σ, 1, SVector(0.8), SVector(1.2))   # ARIMA(1,d,1)
 X = arfima(N, σ, 0.4, SVector(0.8), SVector(1.2)) # ARFIMA(1,d,1)
-X = arfima(N, σ, nothing, SVector(0.8))           # ARFIMA(1,0,0)
+X = arfima(N, σ, nothing, SVector(0.8))           # ARFIMA(1,0,0) ≡ AR(1)
 ```
 
 ---

@@ -1,7 +1,7 @@
 module ARFIMA
 
 using Random, Distributions, LinearAlgebra, StaticArrays
-export arfima, SVector, @SVector
+export arfima, SVector, @SVector, arma
 
 """
     arfima([rng,] N, σ, d, φ=nothing, θ=nothing) -> Xₜ
@@ -39,6 +39,8 @@ while if `d` is `AbstractFloat` then the process is AR**F**IMA.
 In the last case it must hold that `d ∈ (-0.5, 0.5)`.
 If all `d, φ, θ` are `nothing`, white noise is returned.
 
+The function `arma(N, σ, φ, θ = nothing)` is provided for convienience.
+
 ## Examples
 ```julia
 N, σ = 10_000, 0.5
@@ -56,6 +58,8 @@ arfima(rng::AbstractRNG, N, σ, d) = arfima(rng, N, σ, d, nothing, nothing)
 arfima(rng::AbstractRNG, N, σ, d, φ) = arfima(rng, N, σ, d, φ, nothing)
 
 arfima(rng, N, σ, ::Nothing, ::Nothing, θ) = generate_noise(rng, N, σ, θ) # MA
+arma(N::Int, args...) = arma(Random.GLOBAL_RNG, N, args...)
+arma(rng, N, σ, φ, θ = nothing) = arfima(rng, N, σ, nothing, φ, θ)
 
 function arfima(rng, N, σ, d, φ::SVector{P}, θ) where {P} # AR(F)IMA
     L = estimate_past(φ)
