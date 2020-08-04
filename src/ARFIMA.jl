@@ -1,6 +1,6 @@
 module ARFIMA
 
-using Random, Distributions, LinearAlgebra, StaticArrays
+using Random, LinearAlgebra, StaticArrays
 export arfima, SVector, @SVector, arma
 
 """
@@ -108,14 +108,22 @@ function arfima(rng, N, σ, d::Nothing, φ::SVector{P}, θ) where {P} # AR(MA)
 end
 
 
-generate_noise(rng, N, σ, θ::Nothing) = rand(rng, Normal(0, σ), N) # white noise
+function generate_noise(rng, N, σ, θ::Nothing)
+    noise = randn(rng, N)
+    if σ == 1.0
+        return noise
+    else
+        return σ .* noise
+    end
+end
+
 function generate_noise(rng, N, σ, θ::SVector{Q}) where {Q} # MA
     ε = generate_noise(rng, N+Q, σ, nothing)
     noise = zeros(N)
     θ = -θ # this change is necessary due to the defining equation
     # simply now do the average process
-    for i in 1:N
-        @inbounds noise[i] = bdp(θ, ε, i+Q) + ε[i]
+    @inbounds for i in 1:N
+        noise[i] = bdp(θ, ε, i+Q) + ε[i]
     end
     return noise
 end
