@@ -148,8 +148,9 @@ max(P+1, ceil(Int, log(0.001)/log(maximum(abs, φ))))
 
 """
     autoregressive(N, Z, φ::SVector{P}) -> X
-Generate an autoregressive process based on input noise term `Z`.
+Generate an autoregressive process of length `N` based on input noise term `Z`.
 This is used in both ARFIMA and ARMA.
+The noise term must have at least `N+P` elements.
 """
 function autoregressive(N, Z, φ::SVector{P}) where {P}
     L = length(Z) - N; @assert L > P
