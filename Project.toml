@@ -1,7 +1,7 @@
 name = "ARFIMA"
 uuid = "9d0fb3db-ba49-4108-bc86-650b3813b6d5"
 authors = ["George Datseris <datseris.george@gmail.com>"]
-version = "0.3.0"
+version = "0.3.1"
 
 [deps]
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"

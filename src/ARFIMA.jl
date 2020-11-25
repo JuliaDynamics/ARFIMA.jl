@@ -118,6 +118,8 @@ function generate_noise(rng, N, σ, θ::Nothing)
 end
 
 function generate_noise(rng, N, σ, θ::SVector{Q}) where {Q} # MA
+    @warn "There is a critical in the Moving Average code. Please help us fix it. "*
+    "https://github.com/JuliaDynamics/ARFIMA.jl/issues/3"
     ε = generate_noise(rng, N+Q, σ, nothing)
     noise = zeros(N)
     θ = -θ # this change is necessary due to the defining equation
