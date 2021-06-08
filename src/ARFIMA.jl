@@ -50,7 +50,8 @@ arfima(N, σ, 1, SVector(0.8))                       # ARIMA(1,d,0)
 arfima(N, σ, 1, SVector(0.8), SVector(1.2))         # ARIMA(1,d,1)
 arfima(N, σ, 0.4, SVector(0.8), SVector(1.2))       # ARFIMA(1,d,1)
 arfima(N, σ, nothing, SVector(0.8))                 # AR(1)
-arfima(N, σ, nothing,  SVector(0.8), SVector(1.2))  # ARMA(1,1)
+arfima(N, σ, nothing, nothing, SVector(1.2))        # MA(1)
+arfima(N, σ, nothing, SVector(0.8), SVector(1.2))   # ARMA(1,1)
 ```
 """
 arfima(N::Int, args...) = arfima(Random.GLOBAL_RNG, N, args...)
@@ -59,7 +60,7 @@ arfima(rng::AbstractRNG, N, σ, d, φ) = arfima(rng, N, σ, d, φ, nothing)
 
 arfima(rng, N, σ, ::Nothing, ::Nothing, θ) = generate_noise(rng, N, σ, θ) # MA
 arma(N::Int, args...) = arma(Random.GLOBAL_RNG, N, args...)
-arma(rng, N, σ, φ, θ = nothing) = arfima(rng, N, σ, nothing, φ, θ)
+arma(rng, N, σ, φ, θ = nothing) = arfima(rng, N, σ, nothing, φ, θ) # AR(MA)
 
 function arfima(rng, N, σ, d, φ::SVector{P}, θ) where {P} # AR(F)IMA
     L = estimate_past(φ)
@@ -101,14 +102,14 @@ function _hotloop1!(X, noise, differencing, d, N)
 end
 
 function arfima(rng, N, σ, d::Nothing, φ::SVector{P}, θ) where {P} # AR(MA)
-     noise = generate_noise(rng, N + P, σ, θ)
-     L = estimate_past(φ)
-     Z = generate_noise(rng, N + L, σ, θ) # white noise
+     Q = θ !== nothing ? length(θ) : 0
+     L = max(P,Q)+1
+     Z = generate_noise(rng, N+L, σ, θ) # Generate MA
      X = autoregressive(N, Z, φ)
 end
 
 
-function generate_noise(rng, N, σ, θ::Nothing)
+function generate_noise(rng, N, σ, θ::Nothing) # white noise
     noise = randn(rng, N)
     if σ == 1.0
         return noise
@@ -118,14 +119,13 @@ function generate_noise(rng, N, σ, θ::Nothing)
 end
 
 function generate_noise(rng, N, σ, θ::SVector{Q}) where {Q} # MA
-    @warn "There is a critical in the Moving Average code. Please help us fix it. "*
-    "https://github.com/JuliaDynamics/ARFIMA.jl/issues/3"
     ε = generate_noise(rng, N+Q, σ, nothing)
     noise = zeros(N)
     θ = -θ # this change is necessary due to the defining equation
     # simply now do the average process
-    @inbounds for i in 1:N
-        noise[i] = bdp(θ, ε, i+Q) + ε[i]
+    noise[1:Q] .= ε[1:Q]
+    @inbounds for i in (1:N).+Q
+        noise[i-Q+1] = bdp(θ, ε, i) + ε[i]
     end
     return noise
 end
@@ -145,7 +145,7 @@ end
 
 "Estimate how long into the past to go for accurate AR process."
 estimate_past(φ::SVector{P}) where {P} =
-max(P+1, ceil(Int, log(0.001)/log(maximum(abs, φ))))
+    max(P+1, ceil(Int, log(0.001)/log(maximum(abs, φ))))
 
 
 """
@@ -158,15 +158,15 @@ function autoregressive(N, Z, φ::SVector{P}) where {P}
     L = length(Z) - N; @assert L > P
     tmp = zeros(P)
     # Generate correct inital condition: the first P values of X
-    for i = 1:L-P;
+    for i = 1:P;
         y = bdp(φ, tmp, P+1) + Z[i];
         tmp[1:end-1] .= tmp[2:end] # shift values and add the new value
         tmp[end] = y
     end
     # X0 is now the "correct" X0, after L steps in advance
     X = zeros(N); X[1:P] .= tmp
-    for i in (P+1):N
-        @inbounds X[i] = bdp(φ, X, i) + Z[i+L]
+    @inbounds for i in (1+P):N
+        X[i] = bdp(φ, X, i) + Z[i]
     end
     return X
 end
