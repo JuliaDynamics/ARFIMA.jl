@@ -3,9 +3,9 @@ This Julia package simulates stochastic timeseries that follow the ARFIMA proces
 
 The code base is also a proof-of-concept of using Julia's multiple dispatch.
 
-This package is unregistered (because of the absence of a `test` suite). To install do:
+This package is registered, to install do:
 ```
-julia> ] add https://github.com/JuliaDynamics/ARFIMA.jl
+julia> ] add ARFIMA
 
 julia> using ARFIMA
 ```
